@@ -9,20 +9,31 @@ import (
 	"time"
 )
 
+type Level int
+
 const (
-	L_DEBUG = "debug"
-	L_INFO  = "info"
-	L_ERROR = "error"
-	L_FATAL = "fatal"
+	L_DEBUG Level = 1
+	L_INFO  Level = 2
+	L_ERROR Level = 3
+	L_FATAL Level = 4
 )
 
 type logger struct {
-	output io.Writer
+	output              io.Writer
+	verbosityLevel      Level
+	levelToTextValueMap map[Level]string
 }
 
-func New(writer io.Writer) *logger {
+func New(writer io.Writer, verbosityLevel Level) *logger {
 	return &logger{
-		output: writer,
+		output:         writer,
+		verbosityLevel: verbosityLevel,
+		levelToTextValueMap: map[Level]string{
+			L_DEBUG: "DEBUG",
+			L_INFO:  "INFO",
+			L_ERROR: "ERROR",
+			L_FATAL: "FATAL",
+		},
 	}
 }
 
@@ -46,7 +57,14 @@ func (l *logger) Fatal(code int, message string) {
 	l.log(L_FATAL, code, message)
 }
 
-func (l *logger) log(level string, code int, message string) {
+func (l *logger) log(level Level, code int, message string) {
+
+	if level < l.verbosityLevel {
+		return
+	}
+
+	levelTextValue := l.levelToTextValueMap[level]
+
 	go func() {
 		dateTime := time.Now().Format(time.RFC3339)
 
@@ -61,7 +79,7 @@ func (l *logger) log(level string, code int, message string) {
 		msg := fmt.Sprintf(
 			msgTemplate.String(),
 			dateTime,
-			level,
+			levelTextValue,
 			strconv.Itoa(code),
 			message)
 
