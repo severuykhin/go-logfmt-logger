@@ -1,3 +1,3 @@
-module github.com/severuykhin/go-logfmt-logger
+module github.com/severuykhin/logfmt
 
 go 1.17
