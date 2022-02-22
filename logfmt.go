@@ -14,8 +14,9 @@ type Level int
 const (
 	L_DEBUG Level = 1
 	L_INFO  Level = 2
-	L_ERROR Level = 3
-	L_FATAL Level = 4
+	L_WARN  Level = 3
+	L_ERROR Level = 4
+	L_FATAL Level = 5
 )
 
 type logger struct {
@@ -31,15 +32,11 @@ func New(writer io.Writer, verbosityLevel Level) *logger {
 		levelToTextValueMap: map[Level]string{
 			L_DEBUG: "DEBUG",
 			L_INFO:  "INFO",
+			L_WARN:  "WARN",
 			L_ERROR: "ERROR",
 			L_FATAL: "FATAL",
 		},
 	}
-}
-
-// A common error in the process of running an application that needs lighting
-func (l *logger) Error(code int, message string, context ...interface{}) {
-	l.log(L_ERROR, code, message, context...)
 }
 
 // Useful or important information about the operation of the application
@@ -50,6 +47,16 @@ func (l *logger) Info(code int, message string, context ...interface{}) {
 // Additional information about the operation of the application, which may help in identifying errors
 func (l *logger) Debug(code int, message string, context ...interface{}) {
 	l.log(L_DEBUG, code, message, context...)
+}
+
+// Errors that you can pay attention to, but which do not violate the logic of the application
+func (l *logger) Warn(code int, message string, context ...interface{}) {
+	l.log(L_WARN, code, message, context...)
+}
+
+// A common error in the process of running an application that needs lighting
+func (l *logger) Error(code int, message string, context ...interface{}) {
+	l.log(L_ERROR, code, message, context...)
 }
 
 // An error in which further work of applications does not make sense
