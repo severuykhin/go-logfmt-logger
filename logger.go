@@ -38,26 +38,26 @@ func New(writer io.Writer, verbosityLevel Level) *logger {
 }
 
 // A common error in the process of running an application that needs lighting
-func (l *logger) Error(code int, message string) {
-	l.log(L_ERROR, code, message)
+func (l *logger) Error(code int, message string, context ...interface{}) {
+	l.log(L_ERROR, code, message, context...)
 }
 
 // Useful or important information about the operation of the application
-func (l *logger) Info(code int, message string) {
-	l.log(L_INFO, code, message)
+func (l *logger) Info(code int, message string, context ...interface{}) {
+	l.log(L_INFO, code, message, context...)
 }
 
 // Additional information about the operation of the application, which may help in identifying errors
-func (l *logger) Debug(code int, message string) {
-	l.log(L_DEBUG, code, message)
+func (l *logger) Debug(code int, message string, context ...interface{}) {
+	l.log(L_DEBUG, code, message, context...)
 }
 
 // An error in which further work of applications does not make sense
-func (l *logger) Fatal(code int, message string) {
-	l.log(L_FATAL, code, message)
+func (l *logger) Fatal(code int, message string, context ...interface{}) {
+	l.log(L_FATAL, code, message, context...)
 }
 
-func (l *logger) log(level Level, code int, message string) {
+func (l *logger) log(level Level, code int, message string, context ...interface{}) {
 
 	if level < l.verbosityLevel {
 		return
@@ -74,6 +74,9 @@ func (l *logger) log(level Level, code int, message string) {
 		msgTemplate.WriteString("level=%s ")
 		msgTemplate.WriteString("code=%s ")
 		msgTemplate.WriteString("message=\"%s\" ")
+
+		l.addContextValues(&msgTemplate, context...)
+
 		msgTemplate.WriteString("\n")
 
 		msg := fmt.Sprintf(
@@ -89,4 +92,53 @@ func (l *logger) log(level Level, code int, message string) {
 			os.Exit(1)
 		}
 	}()
+}
+
+func (l *logger) addContextValues(strBuilder *strings.Builder, context ...interface{}) {
+
+	contextLength := len(context)
+
+	if contextLength == 0 {
+		return
+	}
+
+	for i := 0; i < contextLength; i++ {
+		if i > 0 && i%2 != 0 {
+			continue
+		}
+
+		if i == contextLength-1 {
+			strBuilder.WriteString(
+				l.getFormattedParam(context[i]) + "=" + " ",
+			)
+		} else {
+			strBuilder.WriteString(
+				l.getFormattedParam(context[i]) + "=" + l.getFormattedValue(context[i+1]) + " ",
+			)
+		}
+
+	}
+}
+
+func (l *logger) getFormattedParam(param interface{}) string {
+	switch v := param.(type) {
+	case int:
+		return strconv.Itoa(v)
+	case string:
+		return v
+	default:
+		return "unknowntype"
+	}
+}
+
+func (l *logger) getFormattedValue(value interface{}) string {
+	switch v := value.(type) {
+	case int:
+		return strconv.Itoa(v)
+	case string:
+		return fmt.Sprintf("\"%s\"", v)
+	default:
+		//TODO - add rest types
+		return "unknowntype"
+	}
 }
