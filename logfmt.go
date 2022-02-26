@@ -19,6 +19,19 @@ const (
 	L_FATAL Level = 5
 )
 
+const (
+	fieldNameDateTime = "datetime"
+	fieldNameCode     = "code"
+	fieldNameMessage  = "message"
+	fieldNameLevel    = "level"
+
+	fieldValueError = "ERROR"
+	fieldValueDebug = "DEBUG"
+	fieldValueInfo  = "INFO"
+	fieldValueFatal = "FATAL"
+	fieldValueWarn  = "WARN"
+)
+
 type logger struct {
 	output              io.Writer
 	verbosityLevel      Level
@@ -30,11 +43,11 @@ func New(writer io.Writer, verbosityLevel Level) *logger {
 		output:         writer,
 		verbosityLevel: verbosityLevel,
 		levelToTextValueMap: map[Level]string{
-			L_DEBUG: "DEBUG",
-			L_INFO:  "INFO",
-			L_WARN:  "WARN",
-			L_ERROR: "ERROR",
-			L_FATAL: "FATAL",
+			L_DEBUG: fieldValueDebug,
+			L_INFO:  fieldValueInfo,
+			L_WARN:  fieldValueWarn,
+			L_ERROR: fieldValueError,
+			L_FATAL: fieldValueFatal,
 		},
 	}
 }
@@ -77,10 +90,10 @@ func (l *logger) log(level Level, code int, message string, context ...interface
 
 		var msgTemplate strings.Builder
 
-		msgTemplate.WriteString("datetime=%s ")
-		msgTemplate.WriteString("level=%s ")
-		msgTemplate.WriteString("code=%s ")
-		msgTemplate.WriteString("message=\"%s\" ")
+		msgTemplate.WriteString(fieldNameDateTime + "=%s ")
+		msgTemplate.WriteString(fieldNameLevel + "=%s ")
+		msgTemplate.WriteString(fieldNameCode + "=%s ")
+		msgTemplate.WriteString(fieldNameMessage + "=\"%s\" ")
 
 		l.addContextValues(&msgTemplate, context...)
 
