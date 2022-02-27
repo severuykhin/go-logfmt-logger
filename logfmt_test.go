@@ -6,17 +6,20 @@ import (
 	"time"
 )
 
-type MockWriter struct{}
+type MockWriter struct {
+	buffer []string
+}
 
-var buffer []string
-
-func (w MockWriter) Write(p []byte) (int, error) {
-	buffer = append(buffer, string(p))
+func (w *MockWriter) Write(p []byte) (int, error) {
+	w.buffer = append(w.buffer, string(p))
 	return len(p), nil
 }
 
+func (w *MockWriter) GetBuffer() []string {
+	return w.buffer
+}
+
 func setupTestCase(t *testing.T) func(t *testing.T) {
-	buffer = []string{}
 	return func(t *testing.T) {
 		// to do
 	}
@@ -27,14 +30,15 @@ func TestOutputIsInCorrectFormat(t *testing.T) {
 	tearDown := setupTestCase(t)
 	defer tearDown(t)
 
-	logger := New(MockWriter{}, L_DEBUG)
+	w := MockWriter{}
+	logger := New(&w, L_DEBUG)
 
 	logger.Error(123, "some_error_message 1")
 	logger.Error(456, "some_error_message 2")
 
 	time.Sleep(time.Millisecond * 300)
 
-	for _, line := range buffer {
+	for _, line := range w.GetBuffer() {
 		if !strings.Contains(line, fieldNameDateTime) {
 			t.Fatalf("output string does not contains field: %s", fieldNameDateTime)
 		}
@@ -70,17 +74,18 @@ func TestMessageContextParams(t *testing.T) {
 	tearDown := setupTestCase(t)
 	defer tearDown(t)
 
-	logger := New(MockWriter{}, L_DEBUG)
+	w := MockWriter{}
+	logger := New(&w, L_DEBUG)
 
 	logger.Debug(502, "message", "param1", "value1", "param2", 42, 123, "value3")
 
 	time.Sleep(time.Millisecond * 300)
 
-	if len(buffer) == 0 {
+	if len(w.GetBuffer()) == 0 {
 		t.Fatal("buffer does not contains output")
 	}
 
-	line := buffer[0]
+	line := w.GetBuffer()[0]
 
 	if !strings.Contains(line, "param1=\"value1\"") {
 		t.Fatalf("output string does not contains field: %s, output: %s", "param1", line)
