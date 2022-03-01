@@ -31,27 +31,66 @@ func TestOutputIsInCorrectFormat(t *testing.T) {
 	defer tearDown(t)
 
 	w := MockWriter{}
-	logger := New(&w, L_DEBUG)
+	logger := New(&w, L_DEBUG, WithFatalHook(func() { /* do nothing */ }))
 
 	logger.Error(123, "some_error_message 1")
-	logger.Error(456, "some_error_message 2")
+	logger.Fatal(456, "some_error_message 2")
 
 	time.Sleep(time.Millisecond * 300)
 
 	for _, line := range w.GetBuffer() {
-		if !strings.Contains(line, fieldNameDateTime) {
-			t.Fatalf("output string does not contains field: %s", fieldNameDateTime)
-		}
-		if !strings.Contains(line, fieldNameCode) {
-			t.Fatalf("output string does not contains field: %s", fieldNameCode)
-		}
-		if !strings.Contains(line, fieldNameLevel) {
-			t.Fatalf("output string does not contains field: %s", fieldNameLevel)
-		}
-		if !strings.Contains(line, fieldNameMessage) {
-			t.Fatalf("output string does not contains field: %s", fieldNameMessage)
-		}
+
+		t.Run("should set all base fields", func(t *testing.T) {
+			if !strings.Contains(line, fieldNameDateTime) {
+				t.Fatalf("output string does not contains field: %s", fieldNameDateTime)
+			}
+			if !strings.Contains(line, fieldNameCode) {
+				t.Fatalf("output string does not contains field: %s", fieldNameCode)
+			}
+			if !strings.Contains(line, fieldNameLevel) {
+				t.Fatalf("output string does not contains field: %s", fieldNameLevel)
+			}
+			if !strings.Contains(line, fieldNameMessage) {
+				t.Fatalf("output string does not contains field: %s", fieldNameMessage)
+			}
+		})
+
+		t.Run("should not set optional fields if they are not specified", func(t *testing.T) {
+			if strings.Contains(line, fieldNameAppName) {
+				t.Fatalf("output string does not contains field: %s", fieldNameMessage)
+			}
+		})
 	}
+}
+
+func TestAppNameOptionalParam(t *testing.T) {
+
+	tearDown := setupTestCase(t)
+	defer tearDown(t)
+
+	w := MockWriter{}
+
+	appName := "app_name_test_case"
+	logger := New(&w, L_DEBUG, WithAppName(appName), WithFatalHook(func() { /* do nthg */ }))
+
+	logger.Debug(1, "some message")
+	logger.Info(1, "some message")
+	logger.Warn(1, "some message")
+	logger.Error(1, "some message")
+	logger.Fatal(1, "some message")
+
+	time.Sleep(time.Millisecond * 300)
+
+	t.Run("should append optional appName param in all cases", func(t *testing.T) {
+		for _, line := range w.GetBuffer() {
+			if !strings.Contains(line, fieldNameAppName) {
+				t.Fatalf("output string does not contains appname field: %s", fieldNameAppName)
+			}
+			if !strings.Contains(line, appName) {
+				t.Fatalf("output string does not contains appname value: %s", appName)
+			}
+		}
+	})
 }
 
 // func TestVerbosityLevelDebug(t *testing.T) {

@@ -25,6 +25,9 @@ const (
 	fieldNameMessage  = "message"
 	fieldNameLevel    = "level"
 
+	// Optional fieldnames
+	fieldNameAppName = "appName"
+
 	fieldValueError = "ERROR"
 	fieldValueDebug = "DEBUG"
 	fieldValueInfo  = "INFO"
@@ -36,10 +39,31 @@ type logger struct {
 	output              io.Writer
 	verbosityLevel      Level
 	levelToTextValueMap map[Level]string
+	config              config
 }
 
-func New(writer io.Writer, verbosityLevel Level) *logger {
-	return &logger{
+type config struct {
+	AppName   string
+	FatalHook func() // Hook on Fatal error level
+}
+
+type optFunc = func(c *config)
+
+func WithAppName(appName string) optFunc {
+	return func(c *config) {
+		c.AppName = appName
+	}
+}
+
+func WithFatalHook(f func()) optFunc {
+	return func(c *config) {
+		c.FatalHook = f
+	}
+}
+
+func New(writer io.Writer, verbosityLevel Level, opts ...optFunc) *logger {
+
+	l := &logger{
 		output:         writer,
 		verbosityLevel: verbosityLevel,
 		levelToTextValueMap: map[Level]string{
@@ -50,6 +74,16 @@ func New(writer io.Writer, verbosityLevel Level) *logger {
 			L_FATAL: fieldValueFatal,
 		},
 	}
+
+	var cfg config
+
+	for _, optF := range opts {
+		optF(&cfg)
+	}
+
+	l.config = cfg
+
+	return l
 }
 
 // Useful or important information about the operation of the application
@@ -85,6 +119,7 @@ func (l *logger) log(level Level, code int, message string, context ...interface
 
 	levelTextValue := l.levelToTextValueMap[level]
 
+	// @TODO - refactor string build algorythm
 	go func() {
 		dateTime := time.Now().Format(time.RFC3339)
 
@@ -94,6 +129,10 @@ func (l *logger) log(level Level, code int, message string, context ...interface
 		msgTemplate.WriteString(fieldNameLevel + "=%s ")
 		msgTemplate.WriteString(fieldNameCode + "=%s ")
 		msgTemplate.WriteString(fieldNameMessage + "=\"%s\" ")
+
+		if l.config.AppName != "" {
+			msgTemplate.WriteString(fieldNameAppName + "=" + l.config.AppName + " ")
+		}
 
 		l.addContextValues(&msgTemplate, context...)
 
@@ -109,7 +148,11 @@ func (l *logger) log(level Level, code int, message string, context ...interface
 		io.WriteString(l.output, msg)
 
 		if level == L_FATAL {
-			os.Exit(1)
+			if l.config.FatalHook != nil {
+				l.config.FatalHook()
+			} else {
+				os.Exit(1)
+			}
 		}
 	}()
 }

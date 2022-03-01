@@ -6,7 +6,7 @@
 3.0.1
 
 ### Description
-The package implements simple logger for golang projects. Logger struct generates lines of output to an io.Writer  in logfmt format - [logfmt standarts](https://www.cloudbees.com/blog/logfmt-a-log-format-thats-easy-to-read-and-write)  
+The package implements simple logger for golang projects. Logger struct generates lines of output to an io.Writer  in logfmt format - [logfmt standards](https://www.cloudbees.com/blog/logfmt-a-log-format-thats-easy-to-read-and-write)  
 
 Supports configurable verbosity level
 
@@ -57,6 +57,40 @@ datetime=2022-02-22T14:14:48+03:00 level=DEBUG code=42 message="error message" p
 ```
 
 Only strings and numbers are supported as additional context parameters  
+
+### Optional params   
+
+#### `WithAppName`
+
+You can pass appName as additional field, that will be appended in all log lines
+```
+logger := logfmt.New(os.Stdout, logfmt.L_DEBUG, logfmt.WithAppName("node1"))  
+logger.Debug(42, "message")
+```  
+
+Output will be 
+```
+datetime=2022-02-22T14:14:48+03:00 level=DEBUG code=42 message="message" appName=node1
+```
+
+#### `WithFatalHook`
+You can pass function that will be called in log.Fatal to stop the application
+```
+signals := make(chan os.Signal, 1)
+signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
+
+logger := logfmt.New(os.Stdout, logfmt.L_DEBUG, logfmt.WithFatalHook(func() {
+    // some logic
+    signals <- syscall.SIGINT // or just os.Exit(1)
+}))
+
+logger.Fatal(123, "fatality")
+
+<-signals
+
+// gaceful shutdown
+```
+`os.Exit(1)` is will be called by default
 
 ### Logging Levels  
 ```
