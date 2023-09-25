@@ -1,7 +1,6 @@
 package logfmt
 
 import (
-	"fmt"
 	"io"
 	"os"
 	"strconv"
@@ -21,7 +20,6 @@ const (
 
 const (
 	fieldNameDateTime = "datetime"
-	fieldNameCode     = "code"
 	fieldNameMessage  = "message"
 	fieldNameLevel    = "level"
 
@@ -87,31 +85,31 @@ func New(writer io.Writer, verbosityLevel Level, opts ...optFunc) *logger {
 }
 
 // Useful or important information about the operation of the application
-func (l *logger) Info(code int, message string, context ...interface{}) {
-	l.log(L_INFO, code, message, context...)
+func (l *logger) Info(message string, context ...interface{}) {
+	l.log(L_INFO, message, context...)
 }
 
 // Additional information about the operation of the application, which may help in identifying errors
-func (l *logger) Debug(code int, message string, context ...interface{}) {
-	l.log(L_DEBUG, code, message, context...)
+func (l *logger) Debug(message string, context ...interface{}) {
+	l.log(L_DEBUG, message, context...)
 }
 
 // Errors that you can pay attention to, but which do not violate the logic of the application
-func (l *logger) Warn(code int, message string, context ...interface{}) {
-	l.log(L_WARN, code, message, context...)
+func (l *logger) Warn(message string, context ...interface{}) {
+	l.log(L_WARN, message, context...)
 }
 
 // A common error in the process of running an application that needs lighting
-func (l *logger) Error(code int, message string, context ...interface{}) {
-	l.log(L_ERROR, code, message, context...)
+func (l *logger) Error(message string, context ...interface{}) {
+	l.log(L_ERROR, message, context...)
 }
 
 // An error in which further work of applications does not make sense
-func (l *logger) Fatal(code int, message string, context ...interface{}) {
-	l.log(L_FATAL, code, message, context...)
+func (l *logger) Fatal(message string, context ...interface{}) {
+	l.log(L_FATAL, message, context...)
 }
 
-func (l *logger) log(level Level, code int, message string, context ...interface{}) {
+func (l *logger) log(level Level, message string, context ...interface{}) {
 
 	if level < l.verbosityLevel {
 		return
@@ -123,29 +121,33 @@ func (l *logger) log(level Level, code int, message string, context ...interface
 	go func() {
 		dateTime := time.Now().Format(time.RFC3339)
 
-		var msgTemplate strings.Builder
+		var msgBuilder strings.Builder
 
-		msgTemplate.WriteString(fieldNameDateTime + "=%s ")
-		msgTemplate.WriteString(fieldNameLevel + "=%s ")
-		msgTemplate.WriteString(fieldNameCode + "=%s ")
-		msgTemplate.WriteString(fieldNameMessage + "=\"%s\" ")
+		minLength := len(fieldNameMessage) +
+			len(fieldNameLevel) +
+			len(fieldNameMessage) +
+			len(dateTime) +
+			len(levelTextValue) +
+			len([]rune(message)) +
+			3 + 3 // per 1 "=" for each key-val pair + per 1 whitespace for each key-val pair
+
+		msgBuilder.Grow(minLength)
+
+		// msgBuilder.Grow(50)
+
+		l.addKeyValPair(&msgBuilder, fieldNameDateTime, dateTime, false)
+		l.addKeyValPair(&msgBuilder, fieldNameLevel, levelTextValue, false)
+		l.addKeyValPair(&msgBuilder, fieldNameMessage, message, true)
 
 		if l.config.AppName != "" {
-			msgTemplate.WriteString(fieldNameAppName + "=" + l.config.AppName + " ")
+			l.addKeyValPair(&msgBuilder, fieldNameAppName, l.config.AppName, false)
 		}
 
-		l.addContextValues(&msgTemplate, context...)
+		l.addContextValues(&msgBuilder, context...)
 
-		msgTemplate.WriteString("\n")
+		msgBuilder.WriteString("\n")
 
-		msg := fmt.Sprintf(
-			msgTemplate.String(),
-			dateTime,
-			levelTextValue,
-			strconv.Itoa(code),
-			message)
-
-		io.WriteString(l.output, msg)
+		io.WriteString(l.output, msgBuilder.String())
 
 		if level == L_FATAL {
 			if l.config.FatalHook != nil {
@@ -157,7 +159,20 @@ func (l *logger) log(level Level, code int, message string, context ...interface
 	}()
 }
 
-func (l *logger) addContextValues(strBuilder *strings.Builder, context ...interface{}) {
+func (l *logger) addKeyValPair(msgBuilder *strings.Builder, key string, value string, escape bool) {
+	msgBuilder.WriteString(key)
+	msgBuilder.WriteString("=")
+	if escape {
+		msgBuilder.WriteString("\"")
+	}
+	msgBuilder.WriteString(value)
+	if escape {
+		msgBuilder.WriteString("\"")
+	}
+	msgBuilder.WriteString(" ")
+}
+
+func (l *logger) addContextValues(msgBuilder *strings.Builder, context ...interface{}) {
 
 	contextLength := len(context)
 
@@ -171,37 +186,21 @@ func (l *logger) addContextValues(strBuilder *strings.Builder, context ...interf
 		}
 
 		if i == contextLength-1 {
-			strBuilder.WriteString(
-				l.getFormattedParam(context[i]) + "=" + " ",
-			)
+			l.addKeyValPair(msgBuilder, l.valueToString(context[i]), "", false)
 		} else {
-			strBuilder.WriteString(
-				l.getFormattedParam(context[i]) + "=" + l.getFormattedValue(context[i+1]) + " ",
-			)
+			l.addKeyValPair(msgBuilder, l.valueToString(context[i]), l.valueToString(context[i+1]), false)
 		}
 
 	}
 }
 
-func (l *logger) getFormattedParam(param interface{}) string {
+func (l *logger) valueToString(param interface{}) string {
 	switch v := param.(type) {
 	case int:
 		return strconv.Itoa(v)
 	case string:
 		return v
 	default:
-		return "unknowntype"
-	}
-}
-
-func (l *logger) getFormattedValue(value interface{}) string {
-	switch v := value.(type) {
-	case int:
-		return strconv.Itoa(v)
-	case string:
-		return fmt.Sprintf("\"%s\"", v)
-	default:
-		//TODO - add rest types
 		return "unknowntype"
 	}
 }
