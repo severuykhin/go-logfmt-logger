@@ -15,12 +15,12 @@ Supports configurable verbosity level
 
 Install  
 ```
-go get github.com/severuykhin/logfmt/v3
+go get github.com/severuykhin/logfmt/v4
 ```
 
 Import  
 ```
-import "github.com/severuykhin/logfmt/v3"
+import "github.com/severuykhin/logfmt/v4"
 ```
 
 Initialize  
@@ -39,17 +39,17 @@ logger := logfmt.New(os.Stdout, logfmt.Level(2))
 Use for basic log  
 ```
 // Base information
-logger.Error(42, "error message")
+logger.Error("error message")
 ``` 
 Output will be  
 ```
-datetime=2022-02-22T14:14:48+03:00 level=ERROR code=42 message="error message"
+datetime=2022-02-22T14:14:48+03:00 level=ERROR message="error message"
 ```
 
 Use for extended log  
 ```
 // Add some context  - where rest optional Log method params will be represented as a key=value pair
-logger.Debug(42, "error message", "param1", "value1", "param2", 1703)
+logger.Debug("error message", "code", 42 "param1", "value1", "param2", 1703)
 ```
 Output will be  
 ```
@@ -65,7 +65,7 @@ Only strings and numbers are supported as additional context parameters
 You can pass appName as additional field, that will be appended in all log lines
 ```
 logger := logfmt.New(os.Stdout, logfmt.L_DEBUG, logfmt.WithAppName("node1"))  
-logger.Debug(42, "message")
+logger.Debug("message")
 ```  
 
 Output will be 
@@ -84,7 +84,7 @@ logger := logfmt.New(os.Stdout, logfmt.L_DEBUG, logfmt.WithFatalHook(func() {
     signals <- syscall.SIGINT // or just os.Exit(1)
 }))
 
-logger.Fatal(123, "fatality")
+logger.Fatal("fatality")
 
 <-signals
 
