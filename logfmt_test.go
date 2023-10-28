@@ -1,7 +1,6 @@
 package logfmt
 
 import (
-	"fmt"
 	"strings"
 	"sync"
 	"testing"
@@ -62,9 +61,6 @@ func TestMustAcceptDifferentTypesOfDataAsMessage(t *testing.T) {
 	time.Sleep(time.Millisecond * 300)
 
 	for _, line := range w.GetBuffer() {
-
-		fmt.Println(line)
-
 		t.Run("should set all base fields", func(t *testing.T) {
 			if !strings.Contains(line, fieldNameDateTime) {
 				t.Fatalf("output string does not contains field: %s", fieldNameDateTime)
@@ -167,7 +163,7 @@ func TestMessageContextParams(t *testing.T) {
 	w := MockWriter{}
 	logger := New(&w, L_DEBUG)
 
-	logger.Debug("message", "param1", "value1", "param2", 42, 123, "value3")
+	logger.Debug("message", "param1", "value1", "param2", 42, 123, "value3", "err", SomeError{message: "error_message"})
 
 	time.Sleep(time.Millisecond * 300)
 
@@ -187,6 +183,10 @@ func TestMessageContextParams(t *testing.T) {
 
 	if !strings.Contains(line, "123=value3") {
 		t.Fatalf("output string does not contains field: %s, output: %s", "value3", line)
+	}
+
+	if !strings.Contains(line, "err=error_message") {
+		t.Fatalf("output string does not contains field: %s, output: %s", "error_message", line)
 	}
 }
 

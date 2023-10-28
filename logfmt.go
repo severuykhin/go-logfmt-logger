@@ -201,6 +201,8 @@ func (l *logger) valueToString(param interface{}) string {
 		return strconv.Itoa(v)
 	case string:
 		return v
+	case error:
+		return v.Error()
 	default:
 		return "unknowntype"
 	}
