@@ -1,6 +1,7 @@
 package logfmt
 
 import (
+	"fmt"
 	"io"
 	"os"
 	"strconv"
@@ -85,31 +86,31 @@ func New(writer io.Writer, verbosityLevel Level, opts ...optFunc) *logger {
 }
 
 // Useful or important information about the operation of the application
-func (l *logger) Info(message string, context ...interface{}) {
-	l.log(L_INFO, message, context...)
+func (l *logger) Info(message any, context ...any) {
+	l.log(L_INFO, fmt.Sprint(message), context...)
 }
 
 // Additional information about the operation of the application, which may help in identifying errors
-func (l *logger) Debug(message string, context ...interface{}) {
-	l.log(L_DEBUG, message, context...)
+func (l *logger) Debug(message any, context ...any) {
+	l.log(L_DEBUG, fmt.Sprint(message), context...)
 }
 
 // Errors that you can pay attention to, but which do not violate the logic of the application
-func (l *logger) Warn(message string, context ...interface{}) {
-	l.log(L_WARN, message, context...)
+func (l *logger) Warn(message any, context ...any) {
+	l.log(L_WARN, fmt.Sprint(message), context...)
 }
 
 // A common error in the process of running an application that needs lighting
-func (l *logger) Error(message string, context ...interface{}) {
-	l.log(L_ERROR, message, context...)
+func (l *logger) Error(message any, context ...any) {
+	l.log(L_ERROR, fmt.Sprint(message), context...)
 }
 
 // An error in which further work of applications does not make sense
-func (l *logger) Fatal(message string, context ...interface{}) {
-	l.log(L_FATAL, message, context...)
+func (l *logger) Fatal(message any, context ...any) {
+	l.log(L_FATAL, fmt.Sprint(message), context...)
 }
 
-func (l *logger) log(level Level, message string, context ...interface{}) {
+func (l *logger) log(level Level, message string, context ...any) {
 
 	if level < l.verbosityLevel {
 		return

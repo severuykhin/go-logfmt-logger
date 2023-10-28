@@ -1,6 +1,7 @@
 package logfmt
 
 import (
+	"fmt"
 	"strings"
 	"sync"
 	"testing"
@@ -25,6 +26,14 @@ func (w *MockWriter) GetBuffer() []string {
 	return w.buffer
 }
 
+type SomeError struct {
+	message string
+}
+
+func (e SomeError) Error() string {
+	return e.message
+}
+
 type MockNullWriter struct {
 }
 
@@ -35,6 +44,38 @@ func (w *MockNullWriter) Write(p []byte) (int, error) {
 func setupTestCase(t *testing.T) func(t *testing.T) {
 	return func(t *testing.T) {
 		// to do
+	}
+}
+
+func TestMustAcceptDifferentTypesOfDataAsMessage(t *testing.T) {
+	tearDown := setupTestCase(t)
+	defer tearDown(t)
+
+	w := MockWriter{}
+	logger := New(&w, L_DEBUG, WithFatalHook(func() { /* do nothing */ }))
+
+	logger.Error("some_error_message 1")
+	logger.Error(SomeError{message: "error message"})
+	logger.Error(42)
+	logger.Error(true)
+
+	time.Sleep(time.Millisecond * 300)
+
+	for _, line := range w.GetBuffer() {
+
+		fmt.Println(line)
+
+		t.Run("should set all base fields", func(t *testing.T) {
+			if !strings.Contains(line, fieldNameDateTime) {
+				t.Fatalf("output string does not contains field: %s", fieldNameDateTime)
+			}
+			if !strings.Contains(line, fieldNameLevel) {
+				t.Fatalf("output string does not contains field: %s", fieldNameLevel)
+			}
+			if !strings.Contains(line, fieldNameMessage) {
+				t.Fatalf("output string does not contains field: %s", fieldNameMessage)
+			}
+		})
 	}
 }
 
