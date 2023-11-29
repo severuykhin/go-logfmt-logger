@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"strconv"
-	"strings"
 	"time"
 )
 
@@ -116,15 +114,13 @@ func (l *logger) log(level Level, message string, context ...any) {
 		return
 	}
 
-	levelTextValue := l.levelToTextValueMap[level]
-
-	// @TODO - refactor string build algorythm
 	go func() {
+		levelTextValue := l.levelToTextValueMap[level]
 		dateTime := time.Now().Format(time.RFC3339)
 
-		var msgBuilder strings.Builder
+		stringBuilder := newStringBuilder()
 
-		minLength := len(fieldNameMessage) +
+		minLength := len(fieldNameDateTime) +
 			len(fieldNameLevel) +
 			len(fieldNameMessage) +
 			len(dateTime) +
@@ -132,23 +128,19 @@ func (l *logger) log(level Level, message string, context ...any) {
 			len([]rune(message)) +
 			3 + 3 // per 1 "=" for each key-val pair + per 1 whitespace for each key-val pair
 
-		msgBuilder.Grow(minLength)
+		stringBuilder.Grow(minLength)
 
-		// msgBuilder.Grow(50)
+		keyValueSequenceCapacity := 8 + len(context) // per one each base field and value plus the length of the context key-values
+		keyValueSequence := make([]interface{}, 0, keyValueSequenceCapacity)
+		keyValueSequence = append(keyValueSequence,
+			fieldNameDateTime, dateTime,
+			fieldNameLevel, levelTextValue,
+			fieldNameMessage, message,
+			fieldNameAppName, l.config.AppName,
+		)
+		keyValueSequence = append(keyValueSequence, context...)
 
-		l.addKeyValPair(&msgBuilder, fieldNameDateTime, dateTime, false)
-		l.addKeyValPair(&msgBuilder, fieldNameLevel, levelTextValue, false)
-		l.addKeyValPair(&msgBuilder, fieldNameMessage, message, true)
-
-		if l.config.AppName != "" {
-			l.addKeyValPair(&msgBuilder, fieldNameAppName, l.config.AppName, false)
-		}
-
-		l.addContextValues(&msgBuilder, context...)
-
-		msgBuilder.WriteString("\n")
-
-		io.WriteString(l.output, msgBuilder.String())
+		io.WriteString(l.output, stringBuilder.StringFrom(keyValueSequence))
 
 		if level == L_FATAL {
 			if l.config.FatalHook != nil {
@@ -158,52 +150,4 @@ func (l *logger) log(level Level, message string, context ...any) {
 			}
 		}
 	}()
-}
-
-func (l *logger) addKeyValPair(msgBuilder *strings.Builder, key string, value string, escape bool) {
-	msgBuilder.WriteString(key)
-	msgBuilder.WriteString("=")
-	if escape {
-		msgBuilder.WriteString("\"")
-	}
-	msgBuilder.WriteString(value)
-	if escape {
-		msgBuilder.WriteString("\"")
-	}
-	msgBuilder.WriteString(" ")
-}
-
-func (l *logger) addContextValues(msgBuilder *strings.Builder, context ...interface{}) {
-
-	contextLength := len(context)
-
-	if contextLength == 0 {
-		return
-	}
-
-	for i := 0; i < contextLength; i++ {
-		if i > 0 && i%2 != 0 {
-			continue
-		}
-
-		if i == contextLength-1 {
-			l.addKeyValPair(msgBuilder, l.valueToString(context[i]), "", false)
-		} else {
-			l.addKeyValPair(msgBuilder, l.valueToString(context[i]), l.valueToString(context[i+1]), false)
-		}
-
-	}
-}
-
-func (l *logger) valueToString(param interface{}) string {
-	switch v := param.(type) {
-	case int:
-		return strconv.Itoa(v)
-	case string:
-		return v
-	case error:
-		return v.Error()
-	default:
-		return "unknowntype"
-	}
 }
