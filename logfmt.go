@@ -85,34 +85,36 @@ func New(writer io.Writer, verbosityLevel Level, opts ...optFunc) *logger {
 
 // Useful or important information about the operation of the application
 func (l *logger) Info(message any, context ...any) {
-	l.log(L_INFO, fmt.Sprint(message), context...)
+	l.log(L_INFO, message, context...)
 }
 
 // Additional information about the operation of the application, which may help in identifying errors
 func (l *logger) Debug(message any, context ...any) {
-	l.log(L_DEBUG, fmt.Sprint(message), context...)
+	l.log(L_DEBUG, message, context...)
 }
 
 // Errors that you can pay attention to, but which do not violate the logic of the application
 func (l *logger) Warn(message any, context ...any) {
-	l.log(L_WARN, fmt.Sprint(message), context...)
+	l.log(L_WARN, message, context...)
 }
 
 // A common error in the process of running an application that needs lighting
 func (l *logger) Error(message any, context ...any) {
-	l.log(L_ERROR, fmt.Sprint(message), context...)
+	l.log(L_ERROR, message, context...)
 }
 
 // An error in which further work of applications does not make sense
 func (l *logger) Fatal(message any, context ...any) {
-	l.log(L_FATAL, fmt.Sprint(message), context...)
+	l.log(L_FATAL, message, context...)
 }
 
-func (l *logger) log(level Level, message string, context ...any) {
+func (l *logger) log(level Level, message any, context ...any) {
 
 	if level < l.verbosityLevel {
 		return
 	}
+
+	msg := fmt.Sprintf("\"%v\"", message)
 
 	go func() {
 		levelTextValue := l.levelToTextValueMap[level]
@@ -125,7 +127,7 @@ func (l *logger) log(level Level, message string, context ...any) {
 			len(fieldNameMessage) +
 			len(dateTime) +
 			len(levelTextValue) +
-			len([]rune(message)) +
+			len([]rune(msg)) +
 			3 + 3 // per 1 "=" for each key-val pair + per 1 whitespace for each key-val pair
 
 		stringBuilder.Grow(minLength)
@@ -135,7 +137,7 @@ func (l *logger) log(level Level, message string, context ...any) {
 		keyValueSequence = append(keyValueSequence,
 			fieldNameDateTime, dateTime,
 			fieldNameLevel, levelTextValue,
-			fieldNameMessage, message,
+			fieldNameMessage, msg,
 			fieldNameAppName, l.config.AppName,
 		)
 		keyValueSequence = append(keyValueSequence, context...)

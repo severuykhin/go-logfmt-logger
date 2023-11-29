@@ -48,8 +48,10 @@ func (sb *stringBuilder) StringFrom(keyVals []interface{}) string {
 		sb.builder.WriteString(key)
 		sb.builder.WriteString("=")
 		sb.builder.WriteString(value)
-		sb.builder.WriteString("\n")
+		sb.builder.WriteString(" ")
 	}
+
+	sb.builder.WriteString("\n")
 
 	return sb.builder.String()
 }
