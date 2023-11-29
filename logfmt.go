@@ -132,14 +132,13 @@ func (l *logger) log(level Level, message any, context ...any) {
 
 		stringBuilder.Grow(minLength)
 
-		keyValueSequenceCapacity := 8 + len(context) // per one each base field and value plus the length of the context key-values
-		keyValueSequence := make([]interface{}, 0, keyValueSequenceCapacity)
-		keyValueSequence = append(keyValueSequence,
+		keyValueSequence := []any{
 			fieldNameDateTime, dateTime,
 			fieldNameLevel, levelTextValue,
 			fieldNameMessage, msg,
 			fieldNameAppName, l.config.AppName,
-		)
+		}
+
 		keyValueSequence = append(keyValueSequence, context...)
 
 		io.WriteString(l.output, stringBuilder.StringFrom(keyValueSequence))

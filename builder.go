@@ -31,8 +31,6 @@ func (sb *stringBuilder) StringFrom(keyVals []interface{}) string {
 		if i > 0 && i%2 != 0 {
 			continue
 		}
-
-		key := sb.valueToString(keyVals[i])
 		var value string
 
 		if i == keyValsLength-1 {
@@ -44,6 +42,8 @@ func (sb *stringBuilder) StringFrom(keyVals []interface{}) string {
 		if value == "" {
 			continue
 		}
+
+		key := sb.valueToString(keyVals[i])
 
 		sb.builder.WriteString(key)
 		sb.builder.WriteString("=")
