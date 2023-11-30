@@ -115,40 +115,37 @@ func (l *logger) log(level Level, message any, context ...any) {
 	}
 
 	msg := fmt.Sprintf("\"%v\"", message)
+	levelTextValue := l.levelToTextValueMap[level]
+	dateTime := time.Now().Format(time.RFC3339)
 
-	go func() {
-		levelTextValue := l.levelToTextValueMap[level]
-		dateTime := time.Now().Format(time.RFC3339)
+	stringBuilder := newStringBuilder()
 
-		stringBuilder := newStringBuilder()
+	minLength := len(fieldNameDateTime) +
+		len(fieldNameLevel) +
+		len(fieldNameMessage) +
+		len(dateTime) +
+		len(levelTextValue) +
+		len([]rune(msg)) +
+		3 + 3 // per 1 "=" for each key-val pair + per 1 whitespace for each key-val pair
 
-		minLength := len(fieldNameDateTime) +
-			len(fieldNameLevel) +
-			len(fieldNameMessage) +
-			len(dateTime) +
-			len(levelTextValue) +
-			len([]rune(msg)) +
-			3 + 3 // per 1 "=" for each key-val pair + per 1 whitespace for each key-val pair
+	stringBuilder.Grow(minLength)
 
-		stringBuilder.Grow(minLength)
+	keyValueSequence := []any{
+		fieldNameDateTime, dateTime,
+		fieldNameLevel, levelTextValue,
+		fieldNameMessage, msg,
+		fieldNameAppName, l.config.AppName,
+	}
 
-		keyValueSequence := []any{
-			fieldNameDateTime, dateTime,
-			fieldNameLevel, levelTextValue,
-			fieldNameMessage, msg,
-			fieldNameAppName, l.config.AppName,
+	keyValueSequence = append(keyValueSequence, context...)
+
+	io.WriteString(l.output, stringBuilder.StringFrom(keyValueSequence))
+
+	if level == L_FATAL {
+		if l.config.FatalHook != nil {
+			l.config.FatalHook()
+		} else {
+			os.Exit(1)
 		}
-
-		keyValueSequence = append(keyValueSequence, context...)
-
-		io.WriteString(l.output, stringBuilder.StringFrom(keyValueSequence))
-
-		if level == L_FATAL {
-			if l.config.FatalHook != nil {
-				l.config.FatalHook()
-			} else {
-				os.Exit(1)
-			}
-		}
-	}()
+	}
 }

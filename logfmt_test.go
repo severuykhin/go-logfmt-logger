@@ -194,7 +194,7 @@ func BenchmarkWithoutContext(b *testing.B) {
 	w := MockNullWriter{}
 	logger := New(&w, L_DEBUG, WithFatalHook(func() { /* do nothing */ }))
 	for i := 0; i < b.N; i++ {
-		logger.Error("test message")
+		logger.Error("some long long long long long test message")
 	}
 }
 
