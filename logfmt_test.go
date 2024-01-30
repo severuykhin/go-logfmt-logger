@@ -86,8 +86,6 @@ func TestOutputIsInCorrectFormat(t *testing.T) {
 	logger.Error("some_error_message 1")
 	logger.Fatal("some_error_message 2")
 
-	time.Sleep(time.Millisecond * 300)
-
 	for _, line := range w.GetBuffer() {
 
 		t.Run("should set all base fields", func(t *testing.T) {
@@ -126,8 +124,6 @@ func TestAppNameOptionalParam(t *testing.T) {
 	logger.Error("some message")
 	logger.Fatal("some message")
 
-	time.Sleep(time.Millisecond * 300)
-
 	t.Run("should append optional appName param in all cases", func(t *testing.T) {
 		for _, line := range w.GetBuffer() {
 			if !strings.Contains(line, fieldNameAppName) {
@@ -156,6 +152,8 @@ func TestAppNameOptionalParam(t *testing.T) {
 
 // }
 
+type someCustomType string
+
 func TestMessageContextParams(t *testing.T) {
 	tearDown := setupTestCase(t)
 	defer tearDown(t)
@@ -163,9 +161,9 @@ func TestMessageContextParams(t *testing.T) {
 	w := MockWriter{}
 	logger := New(&w, L_DEBUG)
 
-	logger.Debug("message", "param1", "value1", "param2", 42, 123, "value3", "err", SomeError{message: "error_message"})
+	someCustomTypeValue := someCustomType("custom_value")
 
-	time.Sleep(time.Millisecond * 300)
+	logger.Debug("message", "param1", "value1", "param2", 42, 123, "value3", "err", SomeError{message: "error_message"}, "customKey", someCustomTypeValue)
 
 	if len(w.GetBuffer()) == 0 {
 		t.Fatal("buffer does not contains output")
@@ -175,6 +173,10 @@ func TestMessageContextParams(t *testing.T) {
 
 	if !strings.Contains(line, "param1=value1") {
 		t.Fatalf("output string does not contains field: %s, output: %s", "param1", line)
+	}
+
+	if !strings.Contains(line, "customKey=custom_value") {
+		t.Fatalf("output string does not contains field: %s, output: %s", "customKey", line)
 	}
 
 	if !strings.Contains(line, "param2=42") {

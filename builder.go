@@ -1,6 +1,7 @@
 package logfmt
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 )
@@ -65,6 +66,6 @@ func (sb *stringBuilder) valueToString(value interface{}) string {
 	case error:
 		return v.Error()
 	default:
-		return "unknowntype"
+		return fmt.Sprintf("%+v", value)
 	}
 }
